@@ -77,15 +77,34 @@ const traverse = (ast: Node): Traversed => {
       }
     }
     case 'BinaryExpression': {
-      if (ast.operator === '+') {
-        const left = traverse(ast.left)
-        const right = traverse(ast.right)
-        if (left.type === 'NumericValue' && right.type === 'NumericValue') {
-          return {
-            type: 'NumericValue',
-            value: left.value + right.value,
-            ast,
-          }
+      const left = traverse(ast.left)
+      const right = traverse(ast.right)
+      if (left.type === 'NumericValue' && right.type === 'NumericValue') {
+        switch (ast.operator) {
+          case '+':
+            return {
+              type: 'NumericValue',
+              value: left.value + right.value,
+              ast,
+            }
+          case '*':
+            return {
+              type: 'NumericValue',
+              value: left.value * right.value,
+              ast,
+            }
+          case '-':
+            return {
+              type: 'NumericValue',
+              value: left.value - right.value,
+              ast,
+            }
+          case '/':
+            return {
+              type: 'NumericValue',
+              value: left.value / right.value,
+              ast,
+            }
         }
       }
       break
