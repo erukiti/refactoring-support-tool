@@ -28,9 +28,9 @@ describe('alert(3)', () => {
   test('const a = 3; alert(a)', () => {
     expect(parseSource('const a = 3; alert(a)').code).toBe('alert(3)')
   })
-  // test('const a = () => 3; alert(a())', () => {
-  //   expect(parseSource('const a = () => 3; alert(a())').code).toBe(
-  //     'alert(3)',
-  //   )
-  // })
+  test('const a = () => 3; alert(a())', () => {
+    expect(parseSource('const a = () => 3; alert(a())').code).toBe(
+      'alert(3)',
+    )
+  })
 })

@@ -45,8 +45,13 @@ const getFromDeclarations = (
   analysingState: AnalysingState,
   name: string,
 ) => {
-  // name に該当する定義が見つからない時にエラー
-  return analysingState.declarations[name]
+  // name に該当する定義が見つからない時にエラーといいたいが、
+  // CallExpression で見つからない場合の処理を入れたいので、Nullable にする
+  if (name in analysingState.declarations) {
+    return analysingState.declarations[name]
+  } else {
+    return null
+  }
 }
 
 const setBlockDeclarations = (
@@ -80,26 +85,30 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
     }
     case 'CallExpression': {
       if (ast.callee.type === 'Identifier') {
-        // いったん、Identifier なら全部未知の物として扱う
-        const args = ast.arguments
-          .map((arg) => {
-            const res = traverse(arg, analysingState)
-            if (res.code) {
-              return res.code
-            } else if (res.value !== undefined) {
-              return `${res.value}`
-            } else {
-              console.log('UNKNOWN arguments')
-              return 'UNKNOWN arguments'
-            }
-          })
-          .join(', ')
-        // console.log(args)
-        return {
-          type: 'Code',
-          code: `${ast.callee.name}(${args})`,
-          ast,
+        const func = getFromDeclarations(analysingState, ast.callee.name)
+        if (func) {
+          return func
+        } else {
+          const args = ast.arguments
+            .map((arg) => {
+              const res = traverse(arg, analysingState)
+              if (res.code) {
+                return res.code
+              } else if (res.value !== undefined) {
+                return `${res.value}`
+              } else {
+                console.log('UNKNOWN arguments')
+                return 'UNKNOWN arguments'
+              }
+            })
+            .join(', ')
+          return {
+            type: 'Code',
+            code: `${ast.callee.name}(${args})`,
+            ast,
+          }
         }
+        // console.log(args)
       } else {
         break
       }
@@ -173,11 +182,14 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
     }
     case 'Identifier': {
       const decl = getFromDeclarations(analysingState, ast.name)
+      if (!decl) {
+        throw new Error('NOT FOUND declarations')
+      }
       return decl
     }
-    // case 'ArrowFunctionExpression': {
-
-    // }
+    case 'ArrowFunctionExpression': {
+      return traverse(ast.body, analysingState)
+    }
   }
   console.log(`UNKNOWN ${ast.type}`, ast)
   return {
