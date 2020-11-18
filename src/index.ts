@@ -1,4 +1,4 @@
-import { transformAsync, ParserOptions, Node } from '@babel/core'
+import { transform, ParserOptions, Node } from '@babel/core'
 // import {File} from '@babel/types'
 
 type Traversed = {
@@ -37,6 +37,20 @@ const traverse = (ast: Node): Traversed => {
         ast,
       }
     }
+    case 'BinaryExpression': {
+      if (ast.operator === '+') {
+        if (
+          ast.left.type === 'NumericLiteral' &&
+          ast.right.type === 'NumericLiteral'
+        ) {
+          return {
+            code: `${ast.left.value + ast.right.value}`,
+            ast,
+          }
+        }
+      }
+      break
+    }
   }
   console.log(`UNKNOWN ${ast.type}`, ast)
   return {
@@ -45,23 +59,17 @@ const traverse = (ast: Node): Traversed => {
   }
 }
 
-const parseSource = async (code: string) => {
+export const parseSource = (code: string) => {
   const plugins: ParserOptions['plugins'] = ['typescript', 'jsx']
 
-  const ast = (
-    await transformAsync(code, {
-      parserOpts: { plugins },
-      ast: true,
-    })
-  )?.ast
+  const ast = transform(code, {
+    parserOpts: { plugins },
+    ast: true,
+  })?.ast
 
   if (!ast) {
     throw new Error('parsing ast failed.')
   } else {
-    const analyzed = traverse(ast.program)
-    console.log(analyzed.code)
+    return traverse(ast.program)
   }
 }
-
-parseSource('alert(3)')
-// parseSource('const a = 1 + 2; console.log(a)')
