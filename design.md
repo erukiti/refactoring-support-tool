@@ -102,6 +102,8 @@ Program を処理するための関数みたいなのを外に作って、それ
 anylysingState.declarations の取得や更新を関数化しておくか。
 blockScope とトップレベルスコープみたいなのを分けておけばよさそう？getFromDeclarationsみたいなので吸収
 
+ReturnStatement どうしたものか……
+コードが死ぬほどややこしくなってきたので、中間層を設けたいがどうしたものか？
 
 
 

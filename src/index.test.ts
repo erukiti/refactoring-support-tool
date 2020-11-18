@@ -33,4 +33,9 @@ describe('alert(3)', () => {
       'alert(3)',
     )
   })
+  test('const a = () => {return 3}; alert(a())', () => {
+    expect(parseSource('const a = () => {return 3}; alert(a())').code).toBe(
+      'alert(3)',
+    )
+  })
 })

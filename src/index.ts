@@ -98,6 +98,7 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
                 return `${res.value}`
               } else {
                 console.log('UNKNOWN arguments')
+                console.log(res)
                 return 'UNKNOWN arguments'
               }
             })
@@ -189,6 +190,19 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
     }
     case 'ArrowFunctionExpression': {
       return traverse(ast.body, analysingState)
+    }
+    case 'BlockStatement': {
+      return resolveBody(
+        ast.body.map((node) => traverse(node, analysingState)),
+        ast,
+      )
+    }
+    case 'ReturnStatement': {
+      if (ast.argument) {
+        return traverse(ast.argument, analysingState)
+      } else {
+        return { type: 'Nop', ast }
+      }
     }
   }
   console.log(`UNKNOWN ${ast.type}`, ast)
