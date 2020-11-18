@@ -1,67 +1,8 @@
 import { transform, ParserOptions, Node } from '@babel/core'
 // import {File} from '@babel/types'
 
-interface TraversedBase {
-  type: string
-  code?: string
-  value?: number | string
-  ast: Node
-}
-
-interface TraversedNumericValue extends TraversedBase {
-  type: 'NumericValue'
-  value: number
-  ast: Node
-}
-
-interface TraversedStringValue extends TraversedBase {
-  type: 'StringValue'
-  value: string
-  ast: Node
-}
-
-interface TraversedCode extends TraversedBase {
-  type: 'Code'
-  code: string
-  ast: Node
-}
-
-interface TraversedNop extends TraversedBase {
-  type: 'Nop'
-  ast: Node
-}
-
-type Traversed =
-  | TraversedCode
-  | TraversedNumericValue
-  | TraversedStringValue
-  | TraversedNop
-
-type AnalysingState = {
-  declarations: { [name: string]: Traversed }
-}
-
-const getFromDeclarations = (
-  analysingState: AnalysingState,
-  name: string,
-) => {
-  // name に該当する定義が見つからない時にエラーといいたいが、
-  // CallExpression で見つからない場合の処理を入れたいので、Nullable にする
-  if (name in analysingState.declarations) {
-    return analysingState.declarations[name]
-  } else {
-    return null
-  }
-}
-
-const setBlockDeclarations = (
-  analysingState: AnalysingState,
-  name: string,
-  traversed: Traversed,
-) => {
-  // 多重定義でエラーを出すようにする
-  analysingState.declarations[name] = traversed
-}
+import { Traversed } from './types'
+import { AnalysingState } from './analysing-state'
 
 const resolveBody = (body: Traversed[], ast: Node): Traversed => {
   const code = body
@@ -85,7 +26,7 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
     }
     case 'CallExpression': {
       if (ast.callee.type === 'Identifier') {
-        const func = getFromDeclarations(analysingState, ast.callee.name)
+        const func = analysingState.getFromDeclarations(ast.callee.name)
         if (func) {
           return func
         } else {
@@ -169,8 +110,7 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
         }
       }
       if (ast.id.type === 'Identifier') {
-        setBlockDeclarations(
-          analysingState,
+        analysingState.setToLocalScope(
           ast.id.name,
           traverse(ast.init, analysingState),
         )
@@ -182,7 +122,7 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
       break
     }
     case 'Identifier': {
-      const decl = getFromDeclarations(analysingState, ast.name)
+      const decl = analysingState.getFromDeclarations(ast.name)
       if (!decl) {
         throw new Error('NOT FOUND declarations')
       }
@@ -224,6 +164,6 @@ export const parseSource = (code: string) => {
   if (!ast) {
     throw new Error('parsing ast failed.')
   } else {
-    return traverse(ast.program, { declarations: {} })
+    return traverse(ast.program, new AnalysingState())
   }
 }
