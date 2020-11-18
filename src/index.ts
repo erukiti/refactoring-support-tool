@@ -2,7 +2,8 @@ import { transform, ParserOptions, Node } from '@babel/core'
 // import {File} from '@babel/types'
 
 type Traversed = {
-  code: string | undefined
+  code?: string
+  value?: number
   ast: Node
 }
 
@@ -20,7 +21,16 @@ const traverse = (ast: Node): Traversed => {
       if (ast.callee.type === 'Identifier') {
         // いったん、Identifier なら全部未知の物として扱う
         const args = ast.arguments
-          .map((arg) => traverse(arg).code)
+          .map((arg) => {
+            const res = traverse(arg)
+            if (res.code) {
+              return res.code
+            } else if (res.value !== undefined) {
+              return `${res.value}`
+            } else {
+              return 'UNKNOWN arguments'
+            }
+          })
           .join(', ')
         console.log(args)
         return {
@@ -33,18 +43,17 @@ const traverse = (ast: Node): Traversed => {
     }
     case 'NumericLiteral': {
       return {
-        code: `${ast.value}`,
+        value: ast.value,
         ast,
       }
     }
     case 'BinaryExpression': {
       if (ast.operator === '+') {
-        if (
-          ast.left.type === 'NumericLiteral' &&
-          ast.right.type === 'NumericLiteral'
-        ) {
+        const left = traverse(ast.left)
+        const right = traverse(ast.right)
+        if (left.value !== undefined && right.value !== undefined) {
           return {
-            code: `${ast.left.value + ast.right.value}`,
+            value: left.value + right.value,
             ast,
           }
         }

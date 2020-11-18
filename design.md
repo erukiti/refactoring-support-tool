@@ -73,3 +73,12 @@ type Traversed = {
 }
 ```
 
+`value` も必要？？？その場合、さらに type も必要になると思う
+
+未解決の関数を使ってるときにどうする？generator使うのは、正直コーディング的にはしんどい。となると2pass?でも、それならそれで中間状態を示す何かがないといけない
+
+が、まずは `1 + 2 + 3` を解決できる方が先かもしれない
+
+`NumericLiteral` で code を返してるけど、code を undefined にして、 value を返すべきか？で、traverse 呼び出し側でそこを判定すべきか
+
+`TraversedNumericLiteral` とかも作った方がよさそう？
