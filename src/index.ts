@@ -31,30 +31,35 @@ type Traversed =
   | TraversedNumericValue
   | TraversedStringValue
 
-const traverse = (ast: Node): Traversed => {
+type AnalysingState = {
+  declarations: { [name: string]: Traversed }
+}
+
+const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
   switch (ast.type) {
     case 'Program': {
       const code = ast.body
-        .map((node) => traverse(node)?.code)
+        .map((node) => traverse(node, analysingState)?.code)
         .filter((code) => code)
         .join('\n')
       return { type: 'Code', code, ast }
     }
     case 'ExpressionStatement': {
       // 一端素通しする？
-      return traverse(ast.expression)
+      return traverse(ast.expression, analysingState)
     }
     case 'CallExpression': {
       if (ast.callee.type === 'Identifier') {
         // いったん、Identifier なら全部未知の物として扱う
         const args = ast.arguments
           .map((arg) => {
-            const res = traverse(arg)
+            const res = traverse(arg, analysingState)
             if (res.code) {
               return res.code
             } else if (res.value !== undefined) {
               return `${res.value}`
             } else {
+              console.log('UNKNOWN arguments')
               return 'UNKNOWN arguments'
             }
           })
@@ -77,8 +82,8 @@ const traverse = (ast: Node): Traversed => {
       }
     }
     case 'BinaryExpression': {
-      const left = traverse(ast.left)
-      const right = traverse(ast.right)
+      const left = traverse(ast.left, analysingState)
+      const right = traverse(ast.right, analysingState)
       if (left.type === 'NumericValue' && right.type === 'NumericValue') {
         switch (ast.operator) {
           case '+':
@@ -109,6 +114,45 @@ const traverse = (ast: Node): Traversed => {
       }
       break
     }
+    case 'VariableDeclaration': {
+      ast.declarations.map((decl) => traverse(decl, analysingState))
+      return {
+        type: 'Code',
+        code: '',
+        ast,
+      }
+    }
+    case 'VariableDeclarator': {
+      if (ast.init === null) {
+        return {
+          type: 'Code',
+          code: '',
+          ast,
+        }
+      }
+      if (ast.id.type === 'Identifier') {
+        // assert(!(ast.id.name in analysingState.declarations))
+        analysingState.declarations[ast.id.name] = traverse(
+          ast.init,
+          analysingState,
+        )
+        return {
+          type: 'Code',
+          code: '',
+          ast,
+        }
+      }
+      break
+    }
+    case 'Identifier': {
+      if (ast.name in analysingState.declarations) {
+        const decl = analysingState.declarations[ast.name]
+        if (decl.type === 'NumericValue') {
+          return decl
+        }
+      }
+      break
+    }
   }
   console.log(`UNKNOWN ${ast.type}`, ast)
   return {
@@ -129,6 +173,6 @@ export const parseSource = (code: string) => {
   if (!ast) {
     throw new Error('parsing ast failed.')
   } else {
-    return traverse(ast.program)
+    return traverse(ast.program, { declarations: {} })
   }
 }

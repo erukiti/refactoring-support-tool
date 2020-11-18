@@ -24,4 +24,8 @@ describe('alert(3)', () => {
   test('alert(9 / 3)', () => {
     expect(parseSource('alert(9 / 3)').code).toBe('alert(3)')
   })
+
+  test('const a = 3; console.log(a)', () => {
+    expect(parseSource('const a = 3; alert(a)').code).toBe('alert(3)')
+  })
 })

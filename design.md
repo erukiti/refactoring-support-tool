@@ -84,3 +84,14 @@ type Traversed = {
 `TraversedNumericLiteral` とかも作った方がよさそう？
 `NumericValue` `StringValue` とかでいいような気がしたり
 
+`DeclationNumericValue` とか作る？で、Program で合成するとか
+
+Node 作り直しで `Node` もありかも？？解決不可能なときは Node を返して、Program が Node を返したら、もう一回 traverse 呼び出すとかでいいような気がする
+
+var スコープって、相互参照ありえるのかな。より一層めんどいなこれ
+
+とりあえず、解読しながら、global state 持つ必要あるかも？
+
+analysingState を持つか
+
+
