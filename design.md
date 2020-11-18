@@ -82,3 +82,5 @@ type Traversed = {
 `NumericLiteral` で code を返してるけど、code を undefined にして、 value を返すべきか？で、traverse 呼び出し側でそこを判定すべきか
 
 `TraversedNumericLiteral` とかも作った方がよさそう？
+`NumericValue` `StringValue` とかでいいような気がしたり
+

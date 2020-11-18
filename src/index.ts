@@ -1,17 +1,44 @@
 import { transform, ParserOptions, Node } from '@babel/core'
 // import {File} from '@babel/types'
 
-type Traversed = {
+interface TraversedBase {
+  type: string
   code?: string
-  value?: number
+  value?: number | string
   ast: Node
 }
+
+interface TraversedNumericValue extends TraversedBase {
+  type: 'NumericValue'
+  value: number
+  ast: Node
+}
+
+interface TraversedStringValue extends TraversedBase {
+  type: 'StringValue'
+  value: string
+  ast: Node
+}
+
+interface TraversedCode extends TraversedBase {
+  type: 'Code'
+  code: string
+  ast: Node
+}
+
+type Traversed =
+  | TraversedCode
+  | TraversedNumericValue
+  | TraversedStringValue
 
 const traverse = (ast: Node): Traversed => {
   switch (ast.type) {
     case 'Program': {
-      const code = ast.body.map((node) => traverse(node).code).join('\n')
-      return { code, ast }
+      const code = ast.body
+        .map((node) => traverse(node)?.code)
+        .filter((code) => code)
+        .join('\n')
+      return { type: 'Code', code, ast }
     }
     case 'ExpressionStatement': {
       // 一端素通しする？
@@ -32,8 +59,9 @@ const traverse = (ast: Node): Traversed => {
             }
           })
           .join(', ')
-        console.log(args)
+        // console.log(args)
         return {
+          type: 'Code',
           code: `${ast.callee.name}(${args})`,
           ast,
         }
@@ -43,6 +71,7 @@ const traverse = (ast: Node): Traversed => {
     }
     case 'NumericLiteral': {
       return {
+        type: 'NumericValue',
         value: ast.value,
         ast,
       }
@@ -51,8 +80,9 @@ const traverse = (ast: Node): Traversed => {
       if (ast.operator === '+') {
         const left = traverse(ast.left)
         const right = traverse(ast.right)
-        if (left.value !== undefined && right.value !== undefined) {
+        if (left.type === 'NumericValue' && right.type === 'NumericValue') {
           return {
+            type: 'NumericValue',
             value: left.value + right.value,
             ast,
           }
@@ -63,6 +93,7 @@ const traverse = (ast: Node): Traversed => {
   }
   console.log(`UNKNOWN ${ast.type}`, ast)
   return {
+    type: 'Code',
     code: 'UNKNOWN\n',
     ast,
   }
