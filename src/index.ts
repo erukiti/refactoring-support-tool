@@ -58,14 +58,21 @@ const setBlockDeclarations = (
   analysingState.declarations[name] = traversed
 }
 
+const resolveBody = (body: Traversed[], ast: Node): Traversed => {
+  const code = body
+    .map((node) => node.code)
+    .filter((code) => code)
+    .join('\n')
+  return { type: 'Code', code, ast }
+}
+
 const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
   switch (ast.type) {
     case 'Program': {
-      const code = ast.body
-        .map((node) => traverse(node, analysingState)?.code)
-        .filter((code) => code)
-        .join('\n')
-      return { type: 'Code', code, ast }
+      return resolveBody(
+        ast.body.map((node) => traverse(node, analysingState)),
+        ast,
+      )
     }
     case 'ExpressionStatement': {
       // 一端素通しする？
