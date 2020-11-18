@@ -26,13 +26,36 @@ interface TraversedCode extends TraversedBase {
   ast: Node
 }
 
+interface TraversedNop extends TraversedBase {
+  type: 'Nop'
+  ast: Node
+}
+
 type Traversed =
   | TraversedCode
   | TraversedNumericValue
   | TraversedStringValue
+  | TraversedNop
 
 type AnalysingState = {
   declarations: { [name: string]: Traversed }
+}
+
+const getFromDeclarations = (
+  analysingState: AnalysingState,
+  name: string,
+) => {
+  // name に該当する定義が見つからない時にエラー
+  return analysingState.declarations[name]
+}
+
+const setBlockDeclarations = (
+  analysingState: AnalysingState,
+  name: string,
+  traversed: Traversed,
+) => {
+  // 多重定義でエラーを出すようにする
+  analysingState.declarations[name] = traversed
 }
 
 const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
@@ -117,42 +140,37 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
     case 'VariableDeclaration': {
       ast.declarations.map((decl) => traverse(decl, analysingState))
       return {
-        type: 'Code',
-        code: '',
+        type: 'Nop',
         ast,
       }
     }
     case 'VariableDeclarator': {
       if (ast.init === null) {
         return {
-          type: 'Code',
-          code: '',
+          type: 'Nop',
           ast,
         }
       }
       if (ast.id.type === 'Identifier') {
-        // assert(!(ast.id.name in analysingState.declarations))
-        analysingState.declarations[ast.id.name] = traverse(
-          ast.init,
+        setBlockDeclarations(
           analysingState,
+          ast.id.name,
+          traverse(ast.init, analysingState),
         )
         return {
-          type: 'Code',
-          code: '',
+          type: 'Nop',
           ast,
         }
       }
       break
     }
     case 'Identifier': {
-      if (ast.name in analysingState.declarations) {
-        const decl = analysingState.declarations[ast.name]
-        if (decl.type === 'NumericValue') {
-          return decl
-        }
-      }
-      break
+      const decl = getFromDeclarations(analysingState, ast.name)
+      return decl
     }
+    // case 'ArrowFunctionExpression': {
+
+    // }
   }
   console.log(`UNKNOWN ${ast.type}`, ast)
   return {

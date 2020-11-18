@@ -92,6 +92,16 @@ var スコープって、相互参照ありえるのかな。より一層めん�
 
 とりあえず、解読しながら、global state 持つ必要あるかも？
 
-analysingState を持つか
+analysingState を持つか、持つのはありだと思う
+
+callState みたいなのを持つべきか。`const a = () => 3` みたいなコードをどう取り扱うべきなのか？`ArrowFunctionExpression`の処理にときにわりと困る。
+
+Program を処理するための関数みたいなのを外に作って、それを ArrowFunctionExpression の body とかで実行するとか？
+
+あ、スコープのことを忘れてた…………
+anylysingState.declarations の取得や更新を関数化しておくか。
+blockScope とトップレベルスコープみたいなのを分けておけばよさそう？getFromDeclarationsみたいなので吸収
+
+
 
 
