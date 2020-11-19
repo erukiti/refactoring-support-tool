@@ -1,37 +1,39 @@
 import { Node } from '@babel/core'
 
-export interface TraversedBase {
+export interface AnalysisBase {
   type: string
   code?: string
   value?: number | string
+  node?: Node
   ast: Node
 }
 
-export interface TraversedNumericValue extends TraversedBase {
+export interface AnalysisNumericValue extends AnalysisBase {
   type: 'NumericValue'
   value: number
   ast: Node
 }
 
-export interface TraversedStringValue extends TraversedBase {
+export interface AnalysisStringValue extends AnalysisBase {
   type: 'StringValue'
   value: string
   ast: Node
 }
 
-export interface TraversedCode extends TraversedBase {
+export interface AnalysisCode extends AnalysisBase {
   type: 'Code'
   code: string
   ast: Node
 }
 
-export interface TraversedNop extends TraversedBase {
-  type: 'Nop'
+export interface AnalysisNode extends AnalysisBase {
+  type: 'Node'
+  node: Node
   ast: Node
 }
 
-export type Traversed =
-  | TraversedCode
-  | TraversedNumericValue
-  | TraversedStringValue
-  | TraversedNop
+export type Analysis =
+  | AnalysisCode
+  | AnalysisNumericValue
+  | AnalysisStringValue
+  | AnalysisNode

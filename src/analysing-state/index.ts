@@ -1,8 +1,8 @@
-import { Traversed } from '../types'
+import { Analysis } from '../types'
 
 export class AnalysingState {
   #stataStack: Array<'File' | 'function' | 'running'>
-  #localScopes: Array<{ [name: string]: Traversed }>
+  #localScopes: Array<{ [name: string]: Analysis[] }>
 
   constructor() {
     this.#stataStack = ['File']
@@ -18,10 +18,10 @@ export class AnalysingState {
     }
   }
 
-  setLocal(name: string, traversed: Traversed) {
+  setLocal(name: string, analysis: Analysis[]) {
     // 多重定義でエラーを出すようにする
     const localScope = this.#localScopes[this.#localScopes.length - 1]
-    localScope[name] = traversed
+    localScope[name] = analysis
   }
 
   enterFunc() {

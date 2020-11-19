@@ -1,38 +1,49 @@
 import { transform, ParserOptions, Node } from '@babel/core'
 // import {File} from '@babel/types'
 
-import { Traversed } from './types'
+import { Analysis } from './types'
 import { AnalysingState } from './analysing-state'
 
-const resolveBody = (body: Traversed[], ast: Node): Traversed => {
-  const code = body
-    .map((node) => node.code)
-    .filter((code) => code)
-    .join('\n')
-  return { type: 'Code', code, ast }
+const resolveCall = (func: Analysis[], analysingState: AnalysingState) => {
+  analysingState.runFunc()
+  const res = func
+    .map((fn) => {
+      if (fn.type === 'Node') {
+        return analyseNode(fn.node, analysingState)
+      } else {
+        return fn
+      }
+    })
+    .flat()
+  analysingState.stopRunningFunc()
+
+  return res
 }
 
-const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
+const analyseNode = (
+  ast: Node,
+  analysingState: AnalysingState,
+): Analysis[] => {
   switch (ast.type) {
-    case 'Program': {
-      return resolveBody(
-        ast.body.map((node) => traverse(node, analysingState)),
-        ast,
-      )
+    case 'Program':
+    case 'BlockStatement': {
+      return ast.body
+        .map((node) => analyseNode(node, analysingState))
+        .flat()
     }
     case 'ExpressionStatement': {
       // 一端素通しする？
-      return traverse(ast.expression, analysingState)
+      return analyseNode(ast.expression, analysingState)
     }
     case 'CallExpression': {
       if (ast.callee.type === 'Identifier') {
         const func = analysingState.getDecl(ast.callee.name)
         if (func) {
-          return func
+          return resolveCall(func, analysingState)
         } else {
           const args = ast.arguments
             .map((arg) => {
-              const res = traverse(arg, analysingState)
+              const res = analyseNode(arg, analysingState)[0] // FIXME
               if (res.code) {
                 return res.code
               } else if (res.value !== undefined) {
@@ -44,11 +55,13 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
               }
             })
             .join(', ')
-          return {
-            type: 'Code',
-            code: `${ast.callee.name}(${args})`,
-            ast,
-          }
+          return [
+            {
+              type: 'Code',
+              code: `${ast.callee.name}(${args})`,
+              ast,
+            },
+          ]
         }
         // console.log(args)
       } else {
@@ -56,68 +69,69 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
       }
     }
     case 'NumericLiteral': {
-      return {
-        type: 'NumericValue',
-        value: ast.value,
-        ast,
-      }
+      return [
+        {
+          type: 'NumericValue',
+          value: ast.value,
+          ast,
+        },
+      ]
     }
     case 'BinaryExpression': {
-      const left = traverse(ast.left, analysingState)
-      const right = traverse(ast.right, analysingState)
+      const left = analyseNode(ast.left, analysingState)[0]
+      const right = analyseNode(ast.right, analysingState)[0]
       if (left.type === 'NumericValue' && right.type === 'NumericValue') {
         switch (ast.operator) {
           case '+':
-            return {
-              type: 'NumericValue',
-              value: left.value + right.value,
-              ast,
-            }
+            return [
+              {
+                type: 'NumericValue',
+                value: left.value + right.value,
+                ast,
+              },
+            ]
           case '*':
-            return {
-              type: 'NumericValue',
-              value: left.value * right.value,
-              ast,
-            }
+            return [
+              {
+                type: 'NumericValue',
+                value: left.value * right.value,
+                ast,
+              },
+            ]
           case '-':
-            return {
-              type: 'NumericValue',
-              value: left.value - right.value,
-              ast,
-            }
+            return [
+              {
+                type: 'NumericValue',
+                value: left.value - right.value,
+                ast,
+              },
+            ]
           case '/':
-            return {
-              type: 'NumericValue',
-              value: left.value / right.value,
-              ast,
-            }
+            return [
+              {
+                type: 'NumericValue',
+                value: left.value / right.value,
+                ast,
+              },
+            ]
         }
       }
       break
     }
     case 'VariableDeclaration': {
-      ast.declarations.map((decl) => traverse(decl, analysingState))
-      return {
-        type: 'Nop',
-        ast,
-      }
+      ast.declarations.map((decl) => analyseNode(decl, analysingState))
+      return []
     }
     case 'VariableDeclarator': {
       if (ast.init === null) {
-        return {
-          type: 'Nop',
-          ast,
-        }
+        return []
       }
       if (ast.id.type === 'Identifier') {
         analysingState.setLocal(
           ast.id.name,
-          traverse(ast.init, analysingState),
+          analyseNode(ast.init, analysingState),
         )
-        return {
-          type: 'Nop',
-          ast,
-        }
+        return []
       }
       break
     }
@@ -129,31 +143,41 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
       return decl
     }
     case 'ArrowFunctionExpression': {
-      return traverse(ast.body, analysingState)
-    }
-    case 'BlockStatement': {
-      return resolveBody(
-        ast.body.map((node) => traverse(node, analysingState)),
-        ast,
-      )
+      analysingState.enterFunc()
+      const res = analyseNode(ast.body, analysingState)
+      analysingState.leaveFunc()
+      return res
     }
     case 'ReturnStatement': {
-      if (ast.argument) {
-        return traverse(ast.argument, analysingState)
+      if (analysingState.isRunningFunction()) {
+        if (ast.argument) {
+          return analyseNode(ast.argument, analysingState)
+        } else {
+          // ast.argument が null の場合は、undefined literal を返す
+          return []
+        }
       } else {
-        return { type: 'Nop', ast }
+        return [
+          {
+            type: 'Node',
+            node: ast,
+            ast,
+          },
+        ]
       }
     }
   }
   console.log(`UNKNOWN ${ast.type}`, ast)
-  return {
-    type: 'Code',
-    code: 'UNKNOWN\n',
-    ast,
-  }
+  return [
+    {
+      type: 'Code',
+      code: 'UNKNOWN\n',
+      ast,
+    },
+  ]
 }
 
-export const parseSource = (code: string) => {
+export const analyseSource = (code: string) => {
   const plugins: ParserOptions['plugins'] = ['typescript', 'jsx']
 
   const ast = transform(code, {
@@ -164,6 +188,17 @@ export const parseSource = (code: string) => {
   if (!ast) {
     throw new Error('parsing ast failed.')
   } else {
-    return traverse(ast.program, new AnalysingState())
+    const code = analyseNode(ast.program, new AnalysingState())
+      .flatMap((node) => {
+        if (node.type === 'Code') {
+          return node.code
+        } else {
+          console.log(node)
+          return 'ERROR'
+        }
+      })
+      .join('\n')
+
+    return { code }
   }
 }
