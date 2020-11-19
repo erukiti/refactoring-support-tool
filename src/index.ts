@@ -26,7 +26,7 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
     }
     case 'CallExpression': {
       if (ast.callee.type === 'Identifier') {
-        const func = analysingState.getFromDeclarations(ast.callee.name)
+        const func = analysingState.getDecl(ast.callee.name)
         if (func) {
           return func
         } else {
@@ -110,7 +110,7 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
         }
       }
       if (ast.id.type === 'Identifier') {
-        analysingState.setToLocalScope(
+        analysingState.setLocal(
           ast.id.name,
           traverse(ast.init, analysingState),
         )
@@ -122,7 +122,7 @@ const traverse = (ast: Node, analysingState: AnalysingState): Traversed => {
       break
     }
     case 'Identifier': {
-      const decl = analysingState.getFromDeclarations(ast.name)
+      const decl = analysingState.getDecl(ast.name)
       if (!decl) {
         throw new Error('NOT FOUND declarations')
       }

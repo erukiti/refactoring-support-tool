@@ -135,3 +135,7 @@ export は、いったん忘れた方がよさそう。複数ファイル対応�
 スコープのスタックも考えないといけないけどどうするか
 
 AnalysingState をクラス化するか…………
+
+traverse option やっぱり必要かなー
+anaylysingState.stateStackでは、function が多重になった時にあかん
+と思ったけど、state に、running を追加と、argScope を追加しちゃえばいいのでは
