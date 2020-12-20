@@ -139,3 +139,9 @@ AnalysingState をクラス化するか…………
 traverse option やっぱり必要かなー
 anaylysingState.stateStackでは、function が多重になった時にあかん
 と思ったけど、state に、running を追加と、argScope を追加しちゃえばいいのでは
+
+リファクタリングするためのリファクタリングツールがほしい状態。
+
+`analyseNode` を `ast.type` 別にファイル分割するとファイルが多すぎてしんどいので、もうちょっといい感じの単位にしたい。
+
+`StringValue` `NumberValue` って `Literal` に統合して良さそう

@@ -3,20 +3,14 @@ import { Node } from '@babel/core'
 export interface AnalysisBase {
   type: string
   code?: string
-  value?: number | string
+  value?: number | string | boolean
   node?: Node
   ast: Node
 }
 
-export interface AnalysisNumericValue extends AnalysisBase {
-  type: 'NumericValue'
-  value: number
-  ast: Node
-}
-
-export interface AnalysisStringValue extends AnalysisBase {
-  type: 'StringValue'
-  value: string
+export interface AnalysisLiteral extends AnalysisBase {
+  type: 'Literal'
+  value: string | number | boolean
   ast: Node
 }
 
@@ -32,8 +26,4 @@ export interface AnalysisNode extends AnalysisBase {
   ast: Node
 }
 
-export type Analysis =
-  | AnalysisCode
-  | AnalysisNumericValue
-  | AnalysisStringValue
-  | AnalysisNode
+export type Analysis = AnalysisCode | AnalysisLiteral | AnalysisNode

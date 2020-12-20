@@ -1,5 +1,4 @@
 import { transform, ParserOptions, Node } from '@babel/core'
-// import {File} from '@babel/types'
 
 import { Analysis } from './types'
 import { AnalysingState } from './analysing-state'
@@ -68,53 +67,16 @@ const analyseNode = (
         break
       }
     }
-    case 'NumericLiteral': {
-      return [
-        {
-          type: 'NumericValue',
-          value: ast.value,
-          ast,
-        },
-      ]
-    }
+    case 'NumericLiteral':
+    case 'StringLiteral':
+    case 'BooleanLiteral':
+      return [{ type: 'Literal', value: ast.value, ast }]
     case 'BinaryExpression': {
       const left = analyseNode(ast.left, analysingState)[0]
       const right = analyseNode(ast.right, analysingState)[0]
-      if (left.type === 'NumericValue' && right.type === 'NumericValue') {
-        switch (ast.operator) {
-          case '+':
-            return [
-              {
-                type: 'NumericValue',
-                value: left.value + right.value,
-                ast,
-              },
-            ]
-          case '*':
-            return [
-              {
-                type: 'NumericValue',
-                value: left.value * right.value,
-                ast,
-              },
-            ]
-          case '-':
-            return [
-              {
-                type: 'NumericValue',
-                value: left.value - right.value,
-                ast,
-              },
-            ]
-          case '/':
-            return [
-              {
-                type: 'NumericValue',
-                value: left.value / right.value,
-                ast,
-              },
-            ]
-        }
+      if (left.type === 'Literal' && right.type === 'Literal') {
+        const value = eval(`${left.value}${ast.operator}${right.value}`)
+        return [{ type: 'Literal', value, ast }]
       }
       break
     }
